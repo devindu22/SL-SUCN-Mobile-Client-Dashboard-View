@@ -1,10 +1,9 @@
 # SL-SUCN Mobile Client
 
-> **Premium Responsive Mobile App UI & Smart City Consumer Dashboard**  
+> **Premium Responsive Mobile App UI & Smart City Consumer Dashboard** 
+> Dynamic, high-contrast urban telemetry tracking ecosystem for decentralized sustainable energy and localized microclimate mitigation.
 
 https://sl-sucn-mobile-client-dashboard.netlify.app/
-
-> Dynamic, high-contrast urban telemetry tracking ecosystem for decentralized sustainable energy and localized microclimate mitigation.
 
 <img width="1919" height="917" alt="Screenshot 2026-07-19 191915" src="https://github.com/user-attachments/assets/d8ddba02-8873-4441-8c3c-e32dfd67f9ed" />
 
