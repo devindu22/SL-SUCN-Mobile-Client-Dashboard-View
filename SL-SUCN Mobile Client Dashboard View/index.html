@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SL-SUCN Mobile Client</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        charcoal: {
+                            900: '#0F1117',
+                            800: '#12141C',
+                            700: '#1C202C',
+                            600: '#2A2F40',
+                        },
+                        emerald: {
+                            glow: '#00E676',
+                            muted: '#00b35c',
+                        },
+                        cyan: {
+                            glow: '#00FFFF',
+                            muted: '#00a3a3',
+                        },
+                        warning: {
+                            orange: '#FF7A00',
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 15px rgba(0, 255, 255, 0.3)',
+                        'neon-emerald': '0 0 15px rgba(0, 230, 118, 0.3)',
+                        'neon-orange': '0 0 15px rgba(255, 122, 0, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0F1117; /* Very dark background */
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #12141C; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2A2F40; 
+            border-radius: 10px;
+        }
+
+        /* Smooth tab transitions */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Battery Animation */
+        .battery-fill {
+            transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 1s ease;
+        }
+
+        /* Pulse Animation for Misting Node */
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+        }
+        .animate-subtle-pulse {
+            animation: subtlePulse 2s infinite;
+        }
+
+        /* Droplet fall animation */
+        @keyframes dropletFall {
+            0% { transform: translateY(-5px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(15px); opacity: 0; }
+        }
+        .droplet-anim {
+            animation: dropletFall 1.5s infinite linear;
+        }
+        .droplet-anim:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+        .droplet-anim:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        /* Glassmorphism for floating feel */
+        .glass-card {
+            background: rgba(28, 32, 44, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body class="h-screen w-full overflow-hidden flex flex-col md:flex-row antialiased selection:bg-cyan-glow selection:text-charcoal-900">
+
+    
+    <!-- Mobile Header (Visible only on mobile/tablet portrait) -->
+    <header class="md:hidden pt-12 pb-4 px-6 glass-card z-20 flex justify-between items-center border-b border-charcoal-600/30 sticky top-0">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <i class="ph-fill ph-leaf text-emerald-glow"></i> SL-SUCN
+            </h1>
+            <p class="text-xs text-gray-400 mt-1 flex items-center gap-1" id="mobile-location-header">
+                <i class="ph ph-map-pin"></i> Loading...
+            </p>
+        </div>
+        <button class="relative p-2 rounded-full bg-charcoal-600/50 text-gray-300 hover:text-white transition-colors">
+            <i class="ph ph-bell text-xl"></i>
+            <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-warning-orange rounded-full border border-charcoal-700"></span>
+        </button>
+    </header>
+
+    <!-- Side Navigation (Visible on Desktop/Tablet Landscape) & Bottom Nav (Mobile) -->
+    <nav class="
+        fixed bottom-0 left-0 w-full glass-card border-t border-charcoal-600/30 z-30 pb-safe pt-2 px-4
+        md:relative md:w-24 lg:w-64 md:border-t-0 md:border-r md:flex md:flex-col md:pt-8 md:pb-6 md:px-0 md:h-screen md:bg-charcoal-800
+    ">
+        <!-- Desktop Logo Area -->
+        <div class="hidden md:flex flex-col items-center lg:items-start lg:px-8 mb-10">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+                <i class="ph-fill ph-leaf text-emerald-glow text-3xl"></i>
+                <span class="hidden lg:block">SL-SUCN</span>
+            </h1>
+            <p class="hidden lg:flex text-sm text-gray-400 mt-2 items-center gap-1" id="desktop-location-header">
+                <i class="ph ph-map-pin"></i> Loading...
+            </p>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="flex justify-around items-center md:flex-col md:justify-start md:gap-4 w-full h-16 md:h-auto">
+            
+            <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col lg:flex-row items-center gap-1 lg:gap-4 lg:w-full lg:px-8 py-2 text-cyan-glow transition-all">
+                <div class="p-1.5 rounded-xl lg:bg-cyan-glow/10">
+                    <i class="ph-fill ph-house text-2xl"></i>
+                </div>
+                <span class="text-[10px] lg:text-sm font-medium">Home</span>
+            </button>
+
+            <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-btn flex flex-col lg:flex-row items-center gap-1 lg:gap-4 lg:w-full lg:px-8 py-2 text-gray-500 hover:text-gray-300 transition-all">
+                <div class="p-1.5 rounded-xl lg:hover:bg-charcoal-600/30">
+                    <i class="ph ph-chart-line-up text-2xl"></i>
+                </div>
+                <span class="text-[10px] lg:text-sm font-medium">Analytics</span>
+            </button>
+
+            <button onclick="switchTab('wallet')" id="nav-wallet" class="nav-btn flex flex-col lg:flex-row items-center gap-1 lg:gap-4 lg:w-full lg:px-8 py-2 text-gray-500 hover:text-gray-300 transition-all">
+                <div class="p-1.5 rounded-xl lg:hover:bg-charcoal-600/30">
+                    <i class="ph ph-wallet text-2xl"></i>
+                </div>
+                <span class="text-[10px] lg:text-sm font-medium">Wallet</span>
+            </button>
+
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col lg:flex-row items-center gap-1 lg:gap-4 lg:w-full lg:px-8 py-2 text-gray-500 hover:text-gray-300 transition-all">
+                <div class="p-1.5 rounded-xl lg:hover:bg-charcoal-600/30">
+                    <i class="ph ph-sliders-horizontal text-2xl"></i>
+                </div>
+                <span class="text-[10px] lg:text-sm font-medium">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 h-full overflow-y-auto pb-24 md:pb-8 pt-4 px-4 md:px-8 lg:px-12 bg-charcoal-900 relative">
+        
+        <!-- Background decorative glows -->
+        <div class="fixed top-[-10%] left-[-10%] w-96 h-96 bg-cyan-glow/5 rounded-full blur-3xl pointer-events-none z-0"></div>
+        <div class="fixed bottom-[-10%] right-[-10%] w-96 h-96 bg-emerald-glow/5 rounded-full blur-3xl pointer-events-none z-0"></div>
+
+        <div class="max-w-4xl mx-auto relative z-10">
+
+            
+            <!-- TAB 1: HOME -->
+            <div id="tab-home" class="tab-content active space-y-6">
+                
+                <!-- Section Title -->
+                <div class="hidden md:flex justify-between items-end mb-6 mt-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-white">Dashboard</h2>
+                        <p class="text-gray-400 mt-1">Real-time localized grid status.</p>
+                    </div>
+                </div>
+
+                <!-- Responsive Grid for Top Widgets -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Widget 1: Interactive Renewable Hub (Source Splitter + Battery) -->
+                    <div class="glass-card rounded-3xl p-5 md:p-6 shadow-lg relative overflow-hidden flex flex-col">
+                        <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center justify-between">
+                            <span>Regional Generation</span>
+                            <span class="flex items-center gap-1 text-xs text-emerald-glow bg-emerald-glow/10 px-2 py-1 rounded-full">
+                                <span class="w-2 h-2 rounded-full bg-emerald-glow animate-pulse"></span> Live
+                            </span>
+                        </h3>
+                        
+                        <div class="flex-1 flex items-center justify-between gap-4">
+                            <!-- Donut Chart Container -->
+                            <div class="w-3/5 relative aspect-square flex items-center justify-center">
+                                <canvas id="sourceSplitChart"></canvas>
+                                <!-- Center Text overlay for Chart -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span class="text-2xl font-bold text-white" id="total-gen-text">0</span>
+                                    <span class="text-[10px] text-gray-400">kW Total</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Battery Capsule -->
+                            <div class="w-2/5 flex flex-col items-center justify-center h-full">
+                                <div class="relative w-14 h-32 md:h-40 border-2 border-charcoal-600 rounded-[20px] p-1 bg-charcoal-800/50 shadow-inner flex flex-col justify-end overflow-hidden">
+                                    <!-- Battery Terminal -->
+                                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-2 bg-charcoal-600 rounded-t-md"></div>
+                                    
+                                    <!-- Dynamic Fill Level -->
+                                    <div id="battery-level" class="battery-fill w-full bg-emerald-glow rounded-[14px] shadow-neon-emerald relative">
+                                        <!-- Shimmer effect -->
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                                        <div class="absolute top-0 left-0 w-full h-1 bg-white/30 rounded-t-full"></div>
+                                    </div>
+                                    
+                                    <!-- Percentage Text Overlay -->
+                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                        <span id="battery-text" class="text-sm font-bold text-white drop-shadow-md">0%</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-gray-400 mt-3 text-center">Storage Reserve</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Widget 2: Microclimate Delta Widget -->
+                    <div class="glass-card rounded-3xl p-5 md:p-6 shadow-lg flex flex-col justify-between">
+                         <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Microclimate Status</h3>
+                            <i class="ph-fill ph-thermometer text-xl text-gray-500"></i>
+                        </div>
+
+                        <!-- Split Thermal Card -->
+                        <div class="grid grid-cols-2 gap-3 flex-1 mb-2">
+                            <!-- Baseline (Hot) -->
+                            <div class="bg-gradient-to-br from-charcoal-800 to-warning-orange/10 rounded-2xl p-4 border border-warning-orange/20 flex flex-col justify-center relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 text-warning-orange/5 text-6xl">
+                                    <i class="ph-fill ph-sun"></i>
+                                </div>
+                                <span class="text-xs text-warning-orange/80 font-medium mb-1 z-10">Baseline (Urban)</span>
+                                <div class="flex items-end gap-1 z-10">
+                                    <span class="text-3xl font-bold text-white tracking-tighter" id="temp-baseline">--</span>
+                                    <span class="text-warning-orange mb-1 text-sm font-bold">°C</span>
+                                </div>
+                            </div>
+
+                            <!-- Cooled (Cold) -->
+                            <div id="mist-card" class="bg-gradient-to-br from-charcoal-800 to-cyan-glow/20 rounded-2xl p-4 border border-cyan-glow/40 flex flex-col justify-center relative overflow-hidden transition-all duration-500">
+                                <div class="absolute inset-0 flex justify-center opacity-30 pointer-events-none z-0">
+                                     <i class="ph-fill ph-drop droplet-anim text-cyan-glow absolute top-2 text-xs"></i>
+                                     <i class="ph-fill ph-drop droplet-anim text-cyan-glow absolute top-4 left-4 text-[10px]"></i>
+                                     <i class="ph-fill ph-drop droplet-anim text-cyan-glow absolute top-1 right-6 text-xs"></i>
+                                </div>
+                                <span class="text-xs text-cyan-glow/90 font-medium mb-1 z-10 relative flex items-center gap-1">
+                                    Mist-Cooled <span id="mist-status-dot" class="w-1.5 h-1.5 rounded-full bg-cyan-glow inline-block"></span>
+                                </span>
+                                <div class="flex items-end gap-1 z-10 relative">
+                                    <span class="text-3xl font-bold text-white tracking-tighter" id="temp-cooled">--</span>
+                                    <span class="text-cyan-glow mb-1 text-sm font-bold">°C</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-2 bg-charcoal-800/50 rounded-xl py-2 px-3 border border-charcoal-600/50">
+                            <span class="text-sm text-gray-300">Local Thermal Relief: <strong class="text-cyan-glow" id="temp-delta">--</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 3: Household Grid Offset Dashboard (Full Width) -->
+                <div class="glass-card rounded-3xl p-5 md:p-6 shadow-lg mt-6">
+                     <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-6 flex items-center justify-between border-b border-charcoal-700 pb-3">
+                        Household Metrics
+                        <span class="text-xs bg-charcoal-700 px-2 py-1 rounded text-gray-400" id="tier-badge">TIER</span>
+                    </h3>
+                    
+                    <div class="flex flex-col md:flex-row items-center gap-8">
+                        
+                        <!-- Grid Reliance Gauge -->
+                        <div class="w-full md:w-1/3 flex flex-col items-center">
+                            <div class="relative w-48 h-24 overflow-hidden">
+                                <canvas id="relianceGauge"></canvas>
+                                <div class="absolute bottom-0 w-full text-center pb-2">
+                                    <span class="text-3xl font-bold text-white" id="reliance-text">--%</span>
+                                    <p class="text-[10px] text-gray-400 uppercase tracking-wide">Grid Reliance</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="w-full md:w-2/3 grid grid-cols-2 gap-4">
+                            
+                            <!-- Consumption -->
+                            <div class="bg-charcoal-800/50 p-4 rounded-2xl border border-charcoal-700/50">
+                                <div class="flex items-center gap-2 mb-2 text-gray-400">
+                                    <i class="ph ph-lightning text-lg text-yellow-500"></i>
+                                    <span class="text-xs uppercase tracking-wider">Live Load</span>
+                                </div>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold text-white" id="live-load">--</span>
+                                    <span class="text-sm text-gray-500">kW</span>
+                                </div>
+                            </div>
+
+                            <!-- Decentralized Offset -->
+                            <div class="bg-emerald-glow/5 p-4 rounded-2xl border border-emerald-glow/20">
+                                <div class="flex items-center gap-2 mb-2 text-emerald-glow">
+                                    <i class="ph ph-solar-panel text-lg"></i>
+                                    <span class="text-xs uppercase tracking-wider">Offset Gen</span>
+                                </div>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold text-white" id="live-offset">--</span>
+                                    <span class="text-sm text-emerald-glow/70">kW</span>
+                                </div>
+                            </div>
+
+                            <!-- Carbon Saved -->
+                            <div class="bg-charcoal-800/50 p-4 rounded-2xl border border-charcoal-700/50">
+                                <div class="flex items-center gap-2 mb-2 text-gray-400">
+                                    <i class="ph ph-tree text-lg text-green-500"></i>
+                                    <span class="text-xs uppercase tracking-wider">CO₂ Saved Today</span>
+                                </div>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold text-white" id="carbon-saved">--</span>
+                                    <span class="text-sm text-gray-500">kg</span>
+                                </div>
+                            </div>
+
+                            <!-- Economic Tracker -->
+                            <div class="bg-gradient-to-br from-charcoal-800 to-emerald-glow/10 p-4 rounded-2xl border border-emerald-glow/30 relative overflow-hidden">
+                                <div class="absolute -right-2 -bottom-2 opacity-10">
+                                    <i class="ph-fill ph-coin text-6xl text-emerald-glow"></i>
+                                </div>
+                                <div class="flex items-center gap-2 mb-2 text-emerald-glow relative z-10">
+                                    <i class="ph ph-wallet text-lg"></i>
+                                    <span class="text-xs uppercase tracking-wider">Est. Credits</span>
+                                </div>
+                                <div class="flex items-baseline gap-1 relative z-10">
+                                    <span class="text-2xl font-bold text-white" id="credits-earned">--</span>
+                                    <span class="text-sm text-emerald-glow">LKR</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- TAB 2: ANALYTICS -->
+            <div id="tab-analytics" class="tab-content space-y-6">
+                <div class="mt-4 mb-6">
+                    <h2 class="text-3xl font-bold text-white">Trend Analytics</h2>
+                    <p class="text-gray-400 mt-1">Regional performance over the last 7 days.</p>
+                </div>
+                
+                <div class="glass-card rounded-3xl p-5 md:p-6 shadow-lg">
+                    <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Generation vs Consumption (kW)</h3>
+                    <div class="w-full h-64 md:h-80">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+                         <div class="flex items-center gap-3">
+                             <div class="p-3 bg-charcoal-800 rounded-xl text-emerald-glow">
+                                 <i class="ph ph-wind text-xl"></i>
+                             </div>
+                             <div>
+                                 <p class="text-xs text-gray-400">Peak Wind Day</p>
+                                 <p class="font-bold">Thursday, 16th</p>
+                             </div>
+                         </div>
+                         <span class="text-emerald-glow font-bold">840 kW</span>
+                     </div>
+                     <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+                         <div class="flex items-center gap-3">
+                             <div class="p-3 bg-charcoal-800 rounded-xl text-yellow-500">
+                                 <i class="ph ph-sun text-xl"></i>
+                             </div>
+                             <div>
+                                 <p class="text-xs text-gray-400">Peak Solar Day</p>
+                                 <p class="font-bold">Yesterday</p>
+                             </div>
+                         </div>
+                         <span class="text-yellow-500 font-bold">1250 kW</span>
+                     </div>
+                 </div>
+            </div>
+
+            <!-- TAB 3: WALLET -->
+            <div id="tab-wallet" class="tab-content space-y-6">
+                <div class="mt-4 mb-6">
+                    <h2 class="text-3xl font-bold text-white">Eco-Wallet</h2>
+                    <p class="text-gray-400 mt-1">Your sustainability rewards ledger.</p>
+                </div>
+
+                <div class="bg-gradient-to-r from-emerald-glow/20 to-cyan-glow/20 p-[1px] rounded-3xl">
+                    <div class="bg-charcoal-800 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <!-- BG elements -->
+                        <i class="ph-fill ph-leaf absolute -top-10 -left-10 text-9xl text-emerald-glow/5 rotate-12"></i>
+                        <i class="ph-fill ph-coin absolute -bottom-10 -right-10 text-9xl text-cyan-glow/5 -rotate-12"></i>
+                        
+                        <p class="text-sm text-gray-400 uppercase tracking-widest mb-2 relative z-10">Total Accumulated Balance</p>
+                        <h1 class="text-5xl md:text-6xl font-bold text-white tracking-tight mb-2 relative z-10">
+                            <span class="text-2xl text-gray-500 align-top mr-1">Rs</span>14,250<span class="text-2xl text-gray-500">.00</span>
+                        </h1>
+                        <p class="text-emerald-glow text-sm flex items-center gap-1 relative z-10 mt-2 bg-emerald-glow/10 px-3 py-1 rounded-full">
+                            <i class="ph-fill ph-trend-up"></i> +1,450.00 this month
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mt-8 mb-4 ml-2">Recent Transactions</h3>
+                <div class="space-y-3">
+                    <!-- Transaction Item -->
+                    <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-emerald-glow/10 flex items-center justify-center text-emerald-glow">
+                                <i class="ph ph-plugs"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">Surplus Energy Export</p>
+                                <p class="text-xs text-gray-500">Jul 18, 2026 • 14:30</p>
+                            </div>
+                        </div>
+                        <span class="text-emerald-glow font-bold">+Rs 120.50</span>
+                    </div>
+                    <!-- Transaction Item -->
+                    <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-cyan-glow/10 flex items-center justify-center text-cyan-glow">
+                                <i class="ph ph-drop"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">Mist Network Contribution</p>
+                                <p class="text-xs text-gray-500">Jul 17, 2026 • 12:15</p>
+                            </div>
+                        </div>
+                        <span class="text-emerald-glow font-bold">+Rs 45.00</span>
+                    </div>
+                    <!-- Transaction Item -->
+                    <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-charcoal-600/50 flex items-center justify-center text-gray-400">
+                                <i class="ph ph-lightning-slash"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">National Grid Draw</p>
+                                <p class="text-xs text-gray-500">Jul 16, 2026 • 20:00</p>
+                            </div>
+                        </div>
+                        <span class="text-white font-medium">-Rs 85.20</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS -->
+            <div id="tab-settings" class="tab-content space-y-6">
+                <div class="mt-4 mb-6">
+                    <h2 class="text-3xl font-bold text-white">Settings</h2>
+                    <p class="text-gray-400 mt-1">Manage preferences and permissions.</p>
+                </div>
+
+                <div class="glass-card rounded-3xl overflow-hidden divide-y divide-charcoal-700">
+                    
+                    <!-- Setting Item -->
+                    <div class="p-5 flex items-center justify-between hover:bg-charcoal-800/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 rounded-lg bg-charcoal-700 text-gray-300">
+                                <i class="ph ph-bell text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">Critical Heat Alerts</p>
+                                <p class="text-xs text-gray-500">Push notifications for urban heat islands</p>
+                            </div>
+                        </div>
+                        <!-- Toggle -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-charcoal-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-glow"></div>
+                        </label>
+                    </div>
+
+                    <!-- Setting Item -->
+                    <div class="p-5 flex items-center justify-between hover:bg-charcoal-800/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 rounded-lg bg-charcoal-700 text-gray-300">
+                                <i class="ph ph-map-pin text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">Precise Geolocation</p>
+                                <p class="text-xs text-gray-500">Required for local mist cooling data</p>
+                            </div>
+                        </div>
+                        <!-- Toggle -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" value="" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-charcoal-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-glow"></div>
+                        </label>
+                    </div>
+
+                     <!-- Setting Item -->
+                     <div class="p-5 flex items-center justify-between hover:bg-charcoal-800/50 transition-colors cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 rounded-lg bg-charcoal-700 text-gray-300">
+                                <i class="ph ph-user text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">Account Details</p>
+                                <p class="text-xs text-gray-500" id="setting-user-id">USR-XXXXX</p>
+                            </div>
+                        </div>
+                        <i class="ph ph-caret-right text-gray-500"></i>
+                    </div>
+
+                </div>
+                
+                <div class="flex justify-center pt-8">
+                    <p class="text-xs text-charcoal-600">SL-SUCN Client v2.4.1 (Redis Edge Cache)</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 1. Data Payload (Provided by backend simulation) ---
+        const telemetryPayload = {
+            "timestamp": "2026-07-19T12:00:00Z",
+            "user_profile": {
+                "user_id": "USR-94821",
+                "district": "Colombo Fort",
+                "household_tier": "RESIDENTIAL_HYBRID"
+            },
+            "metrics": {
+                "regional_grid_contributions": {
+                    "active_zone": "Colombo Central Sector",
+                    "total_renewable_generation_kw": 1840.50,
+                    "solar_pv_array_contribution_kw": 1120.20,
+                    "wind_turbine_contribution_kw": 720.30,
+                    "current_storage_reserve_capacity_percent": 74.20
+                },
+                "personalized_household_offset": {
+                    "live_consumption_kw": 2.40,
+                    "live_decentralized_offset_kw": 1.85,
+                    "national_grid_reliance_percent": 22.90,
+                    "daily_carbon_saved_kg": 4.20,
+                    "monthly_credits_earned_lkr": 1450.00
+                },
+                "microclimate_live_temperatures": {
+                    "localized_sensor_station": "STN-FORT-04",
+                    "baseline_ambient_temperature_celsius": 34.2,
+                    "mist_cooled_temperature_celsius": 29.8,
+                    "active_cooling_delta_celsius": 4.4,
+                    "mist_system_status": "PULSING_ACTIVE"
+                }
+            }
+        };
+
+        // Configuration for charts to match dark theme
+        Chart.defaults.color = '#9CA3AF'; // text-gray-400
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        const gridColor = 'rgba(255, 255, 255, 0.05)';
+
+        // Global Chart instances
+        let donutChart, gaugeChart, lineChart;
+
+        // --- 2. Tab Navigation Logic ---
+        function switchTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show target content
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Reset all nav buttons styles
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                // Remove active classes
+                btn.classList.remove('text-cyan-glow');
+                btn.classList.add('text-gray-500', 'hover:text-gray-300');
+                
+                // Desktop background reset
+                const iconContainer = btn.querySelector('div');
+                iconContainer.classList.remove('lg:bg-cyan-glow/10');
+                iconContainer.classList.add('lg:hover:bg-charcoal-600/30');
+
+                // Toggle icon fill/outline (Phosphor uses different classes, we manipulate DOM roughly)
+                const icon = btn.querySelector('i');
+                if(icon.classList.contains('ph-fill')) {
+                    icon.classList.remove('ph-fill');
+                    icon.classList.add('ph');
+                }
+            });
+
+            // Set active button style
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.remove('text-gray-500', 'hover:text-gray-300');
+            activeBtn.classList.add('text-cyan-glow');
+            
+            const activeIconContainer = activeBtn.querySelector('div');
+            activeIconContainer.classList.remove('lg:hover:bg-charcoal-600/30');
+            activeIconContainer.classList.add('lg:bg-cyan-glow/10');
+
+            const activeIcon = activeBtn.querySelector('i');
+            activeIcon.classList.remove('ph');
+            activeIcon.classList.add('ph-fill');
+        }
+
+        // --- 3. UI Initialization & Data Binding ---
+        function initializeApp() {
+            bindDataToUI();
+            initializeCharts();
+            applyStatusEffects();
+        }
+
+        function bindDataToUI() {
+            const data = telemetryPayload;
+            
+            // Header Info
+            document.getElementById('mobile-location-header').innerHTML = `<i class="ph ph-map-pin"></i> ${data.user_profile.district}`;
+            document.getElementById('desktop-location-header').innerHTML = `<i class="ph ph-map-pin"></i> ${data.user_profile.district}`;
+            document.getElementById('tier-badge').innerText = data.user_profile.household_tier.replace('_', ' ');
+            document.getElementById('setting-user-id').innerText = data.user_profile.user_id;
+
+            // Microclimate Widget
+            const climate = data.metrics.microclimate_live_temperatures;
+            document.getElementById('temp-baseline').innerText = climate.baseline_ambient_temperature_celsius;
+            document.getElementById('temp-cooled').innerText = climate.mist_cooled_temperature_celsius;
+            document.getElementById('temp-delta').innerText = `-${climate.active_cooling_delta_celsius}°C`;
+
+            // Household Metrics
+            const hMetrics = data.metrics.personalized_household_offset;
+            document.getElementById('live-load').innerText = hMetrics.live_consumption_kw.toFixed(2);
+            document.getElementById('live-offset').innerText = hMetrics.live_decentralized_offset_kw.toFixed(2);
+            document.getElementById('carbon-saved').innerText = hMetrics.daily_carbon_saved_kg.toFixed(1);
+            
+            // Format currency
+            const formatter = new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2 });
+            document.getElementById('credits-earned').innerText = formatter.format(hMetrics.monthly_credits_earned_lkr);
+
+            // Battery Update
+            const batteryLevel = data.metrics.regional_grid_contributions.current_storage_reserve_capacity_percent;
+            const batteryEl = document.getElementById('battery-level');
+            const batteryText = document.getElementById('battery-text');
+            
+            // Slight delay for animation effect on load
+            setTimeout(() => {
+                batteryEl.style.height = `${batteryLevel}%`;
+                batteryText.innerText = `${Math.round(batteryLevel)}%`;
+                
+                // Color logic based on charge
+                if(batteryLevel < 20) {
+                    batteryEl.className = "battery-fill w-full bg-warning-orange rounded-[14px] shadow-neon-orange relative";
+                } else if (batteryLevel < 50) {
+                    batteryEl.className = "battery-fill w-full bg-yellow-400 rounded-[14px] relative";
+                    batteryEl.style.boxShadow = "0 0 15px rgba(250, 204, 21, 0.3)";
+                } else {
+                    batteryEl.className = "battery-fill w-full bg-emerald-glow rounded-[14px] shadow-neon-emerald relative";
+                }
+            }, 300);
+        }
+
+        function applyStatusEffects() {
+            const mistStatus = telemetryPayload.metrics.microclimate_live_temperatures.mist_system_status;
+            const mistCard = document.getElementById('mist-card');
+            const dot = document.getElementById('mist-status-dot');
+
+            if (mistStatus === "PULSING_ACTIVE") {
+                mistCard.classList.add('animate-subtle-pulse');
+                dot.classList.add('animate-pulse');
+            } else {
+                mistCard.classList.remove('animate-subtle-pulse');
+                dot.classList.remove('animate-pulse');
+                document.querySelectorAll('.droplet-anim').forEach(el => el.style.display = 'none');
+            }
+        }
+
+        function initializeCharts() {
+            const rMetrics = telemetryPayload.metrics.regional_grid_contributions;
+            const hMetrics = telemetryPayload.metrics.personalized_household_offset;
+
+            // 1. Source Splitter (Donut)
+            const ctxDonut = document.getElementById('sourceSplitChart').getContext('2d');
+            
+            // Set total text
+            document.getElementById('total-gen-text').innerText = Math.round(rMetrics.total_renewable_generation_kw);
+
+            donutChart = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Solar PV', 'Wind Turbine'],
+                    datasets: [{
+                        data: [rMetrics.solar_pv_array_contribution_kw, rMetrics.wind_turbine_contribution_kw],
+                        backgroundColor: ['#FACC15', '#00E676'], // Yellow for sun, Emerald for wind
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(28, 32, 44, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw} kW`;
+                                }
+                            }
+                        }
+                    },
+                    animation: { animateScale: true, animateRotate: true }
+                }
+            });
+
+            // 2. Grid Reliance Gauge (Half Donut)
+            const ctxGauge = document.getElementById('relianceGauge').getContext('2d');
+            const reliance = hMetrics.national_grid_reliance_percent;
+            
+            // Update text inside gauge visually
+            document.getElementById('reliance-text').innerText = `${reliance.toFixed(1)}%`;
+
+            // Color logic: High reliance is bad (orange), low is good (cyan/emerald)
+            let gaugeColor = '#00FFFF'; // default cyan
+            if(reliance > 50) gaugeColor = '#FF7A00'; // orange
+            else if (reliance > 25) gaugeColor = '#FACC15'; // yellow
+
+            gaugeChart = new Chart(ctxGauge, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [reliance, 100 - reliance],
+                        backgroundColor: [gaugeColor, '#2A2F40'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270, // Start from left side
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: false } // Disable tooltip for gauge
+                    },
+                    animation: { animateRotate: true }
+                }
+            });
+
+            // 3. Analytics Trend Line Chart (Mock historical data)
+            const ctxLine = document.getElementById('trendChart').getContext('2d');
+            
+            // Generate some mock history ending near current values
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
+            
+            lineChart = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [
+                        {
+                            label: 'Generation (kW)',
+                            data: [1200, 1500, 1450, 1750, 1600, 1800, rMetrics.total_renewable_generation_kw],
+                            borderColor: '#00E676', // Emerald
+                            backgroundColor: 'rgba(0, 230, 118, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#00E676'
+                        },
+                        {
+                            label: 'Demand (kW)',
+                            data: [1600, 1550, 1650, 1600, 1700, 1500, 1550], // Mock steady demand
+                            borderColor: '#FF7A00', // Orange
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9CA3AF', usePointStyle: true, boxWidth: 6 },
+                            position: 'top'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(28, 32, 44, 0.9)',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#6B7280' }
+                        },
+                        y: {
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { color: '#6B7280', maxTicksLimit: 5 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Run initialization when DOM is fully loaded
+        window.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+</html>
